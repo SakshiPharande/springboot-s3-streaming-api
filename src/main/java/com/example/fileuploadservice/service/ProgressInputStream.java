@@ -55,8 +55,10 @@ public class ProgressInputStream extends InputStream {
 
     private void updateProgress() {
         Progress progress = progressMap.get(progressId);
-        if (progress != null && bytesRead % 8192 == 0) { // Update every 8KB
+        if (progress != null) {
             progress.updateProgress(bytesRead);
+            System.out.println("Read so far: " + bytesRead + " bytes");
         }
     }
+
 }

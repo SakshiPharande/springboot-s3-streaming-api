@@ -1,15 +1,17 @@
 package com.example.fileuploadservice.service;
 
+import com.example.fileuploadservice.dto.FileDownloadResponse;
 import com.example.fileuploadservice.dto.Progress;
 import io.minio.*;
 import jakarta.annotation.PostConstruct;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 
-import java.io.InputStream;
+import java.io.*;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,6 +23,9 @@ public class FileService {
 
     @Value("${minio.bucket-name}")
     private String bucketName;
+
+    @Value("${file.download.dir}")
+    private String downloadDir;
 
     private final Map<String, Progress> progressMap = new ConcurrentHashMap<>();
 
@@ -92,6 +97,56 @@ public class FileService {
 
         return new ProgressInputStream(response, downloadId, progressMap);
     }
+
+    public FileDownloadResponse downloadFileAndSave(String fileName, String downloadId) throws Exception {
+        GetObjectResponse response = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fileName)
+                        .build()
+        );
+
+        long fileSize = getFileSize(fileName);
+        Progress progress = new Progress(fileName, fileSize);
+        progressMap.put(downloadId, progress);
+
+        File targetFile = getTargetFile(fileName, downloadId, response);
+
+        return new FileDownloadResponse(
+                fileName,
+                formatFileSize(fileSize),
+                targetFile.getAbsolutePath(),
+                "File downloaded and saved successfully."
+        );
+    }
+
+    @NotNull
+    private File getTargetFile(String fileName, String downloadId, GetObjectResponse response) throws IOException {
+        File dir = new File(downloadDir);
+        if (!dir.exists()) dir.mkdirs();
+
+        // Save file locally
+        File targetFile = new File(dir, fileName);
+        try (InputStream in = new ProgressInputStream(response, downloadId, progressMap);
+             OutputStream out = new FileOutputStream(targetFile)) {
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                out.write(buffer, 0, bytesRead);
+            }
+        }
+        return targetFile;
+    }
+
+    private String formatFileSize(long size) {
+        if (size < 1024) return size + " B";
+        int exp = (int) (Math.log(size) / Math.log(1024));
+        String pre = "KMGTPE".charAt(exp - 1) + "";
+        return String.format("%.1f %sB", size / Math.pow(1024, exp), pre);
+    }
+
+
 
     public long getFileSize(String fileName) throws Exception {
         StatObjectResponse stat = minioClient.statObject(
