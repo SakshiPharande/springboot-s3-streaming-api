@@ -12,7 +12,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody;
 
+import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -74,22 +76,32 @@ public class FileController {
         }
     }
 */
+
     @GetMapping("/download/{fileName}")
-    public ResponseEntity<FileDownloadResponse> downloadAndSaveFile(@PathVariable String fileName) {
+    public ResponseEntity<StreamingResponseBody> downloadAndSaveFile(@PathVariable String fileName) {
         try {
             if (!fileService.fileExists(fileName)) {
                 return ResponseEntity.notFound().build();
             }
 
-            String downloadId = UUID.randomUUID().toString();
-            FileDownloadResponse response = fileService.downloadFileAndSave(fileName, downloadId);
+            StreamingResponseBody stream = outputStream -> {
+                try {
+                    fileService.downloadFileAndSaveAndStream(fileName, outputStream);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            };
 
-            return ResponseEntity.ok(response);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(stream);
+
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(new FileDownloadResponse(fileName, "0 B", null, "Error: " + e.getMessage()));
+            return ResponseEntity.internalServerError().build();
         }
     }
+
 
 
     @GetMapping("/progress/{id}")

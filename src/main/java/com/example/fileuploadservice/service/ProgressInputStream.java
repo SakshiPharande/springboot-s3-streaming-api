@@ -57,7 +57,7 @@ public class ProgressInputStream extends InputStream {
         Progress progress = progressMap.get(progressId);
         if (progress != null) {
             progress.updateProgress(bytesRead);
-            System.out.println("Read so far: " + bytesRead + " bytes");
+//            System.out.println("Read so far: " + bytesRead + " bytes");
         }
     }
 

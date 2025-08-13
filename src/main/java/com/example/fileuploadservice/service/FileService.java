@@ -13,6 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Service
@@ -98,7 +99,7 @@ public class FileService {
         return new ProgressInputStream(response, downloadId, progressMap);
     }
 
-    public FileDownloadResponse downloadFileAndSave(String fileName, String downloadId) throws Exception {
+    public void downloadFileAndSaveAndStream(String fileName, OutputStream clientStream) throws Exception {
         GetObjectResponse response = minioClient.getObject(
                 GetObjectArgs.builder()
                         .bucket(bucketName)
@@ -107,37 +108,35 @@ public class FileService {
         );
 
         long fileSize = getFileSize(fileName);
+        String downloadId = UUID.randomUUID().toString();
         Progress progress = new Progress(fileName, fileSize);
         progressMap.put(downloadId, progress);
 
-        File targetFile = getTargetFile(fileName, downloadId, response);
+        File targetFile = new File(downloadDir, fileName);
+        targetFile.getParentFile().mkdirs();
 
-        return new FileDownloadResponse(
-                fileName,
-                formatFileSize(fileSize),
-                targetFile.getAbsolutePath(),
-                "File downloaded and saved successfully."
-        );
-    }
-
-    @NotNull
-    private File getTargetFile(String fileName, String downloadId, GetObjectResponse response) throws IOException {
-        File dir = new File(downloadDir);
-        if (!dir.exists()) dir.mkdirs();
-
-        // Save file locally
-        File targetFile = new File(dir, fileName);
         try (InputStream in = new ProgressInputStream(response, downloadId, progressMap);
-             OutputStream out = new FileOutputStream(targetFile)) {
+             OutputStream localOut = new FileOutputStream(targetFile)) {
 
             byte[] buffer = new byte[8192];
             int bytesRead;
+            long totalRead = 0;
+
             while ((bytesRead = in.read(buffer)) != -1) {
-                out.write(buffer, 0, bytesRead);
+                // Save to disk
+                localOut.write(buffer, 0, bytesRead);
+
+                // Send to client in real time
+                clientStream.write(buffer, 0, bytesRead);
+                clientStream.flush();
+
+                totalRead += bytesRead;
+               // System.out.println("Downloaded: " + formatFileSize(totalRead));
             }
         }
-        return targetFile;
     }
+
+
 
     private String formatFileSize(long size) {
         if (size < 1024) return size + " B";
