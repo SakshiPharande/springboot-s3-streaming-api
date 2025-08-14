@@ -84,21 +84,6 @@ public class FileService {
         return fileName;
     }
 
-    public InputStream downloadFile(String fileName, String downloadId) throws Exception {
-        GetObjectResponse response = minioClient.getObject(
-                GetObjectArgs.builder()
-                        .bucket(bucketName)
-                        .object(fileName)
-                        .build()
-        );
-
-        long fileSize = getFileSize(fileName);
-        Progress progress = new Progress(fileName, fileSize);
-        progressMap.put(downloadId, progress);
-
-        return new ProgressInputStream(response, downloadId, progressMap);
-    }
-
     public void downloadFileAndSaveAndStream(String fileName, OutputStream clientStream) throws Exception {
         GetObjectResponse response = minioClient.getObject(
                 GetObjectArgs.builder()
@@ -132,6 +117,22 @@ public class FileService {
 
                 totalRead += bytesRead;
                // System.out.println("Downloaded: " + formatFileSize(totalRead));
+            }
+        }
+    }
+
+    public void downloadFileFromMinio(String fileName, OutputStream clientStream) throws Exception {
+        try (InputStream in = minioClient.getObject(
+                GetObjectArgs.builder()
+                        .bucket(bucketName)
+                        .object(fileName)
+                        .build())) {
+
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = in.read(buffer)) != -1) {
+                clientStream.write(buffer, 0, bytesRead);
+                clientStream.flush(); // send chunks immediately
             }
         }
     }

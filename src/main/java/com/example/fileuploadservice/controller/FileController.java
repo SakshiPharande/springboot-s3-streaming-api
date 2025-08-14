@@ -50,34 +50,9 @@ public class FileController {
             return ResponseEntity.badRequest().body("Upload failed: " + e.getMessage());
         }
     }
-/*
-    @GetMapping("/download/{fileName}")
-    public ResponseEntity<InputStreamResource> downloadFile(@PathVariable String fileName) {
-        try {
-            if (!fileService.fileExists(fileName)) {
-                return ResponseEntity.notFound().build();
-            }
 
-            String downloadId = UUID.randomUUID().toString();
-            var fileStream = fileService.downloadFile(fileName, downloadId);
-            long fileSize = fileService.getFileSize(fileName);
-
-            HttpHeaders headers = new HttpHeaders();
-            headers.add("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-            headers.add("X-Download-Id", downloadId);
-
-            return ResponseEntity.ok()
-                    .headers(headers)
-                    .contentLength(fileSize)
-                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                    .body(new InputStreamResource(fileStream));
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-*/
-
-    @GetMapping("/download/{fileName}")
+// Method 1
+    @GetMapping("/download-save/{fileName}")
     public ResponseEntity<StreamingResponseBody> downloadAndSaveFile(@PathVariable String fileName) {
         try {
             if (!fileService.fileExists(fileName)) {
@@ -87,6 +62,32 @@ public class FileController {
             StreamingResponseBody stream = outputStream -> {
                 try {
                     fileService.downloadFileAndSaveAndStream(fileName, outputStream);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+            };
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + fileName + "\"")
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .body(stream);
+
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().build();
+        }
+    }
+
+// Method 2
+    @GetMapping("/download/{fileName}")
+    public ResponseEntity<StreamingResponseBody> downloadFile(@PathVariable String fileName) {
+        try {
+            if (!fileService.fileExists(fileName)) {
+                return ResponseEntity.notFound().build();
+            }
+
+            StreamingResponseBody stream = outputStream -> {
+                try {
+                    fileService.downloadFileFromMinio(fileName, outputStream);
                 } catch (Exception e) {
                     throw new RuntimeException(e);
                 }
