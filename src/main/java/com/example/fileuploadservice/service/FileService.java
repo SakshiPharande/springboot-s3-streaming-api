@@ -1,10 +1,8 @@
 package com.example.fileuploadservice.service;
 
-import com.example.fileuploadservice.dto.FileDownloadResponse;
 import com.example.fileuploadservice.dto.Progress;
 import io.minio.*;
 import jakarta.annotation.PostConstruct;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -105,8 +103,6 @@ public class FileService {
 
             byte[] buffer = new byte[8192];
             int bytesRead;
-            long totalRead = 0;
-
             while ((bytesRead = in.read(buffer)) != -1) {
                 // Save to disk
                 localOut.write(buffer, 0, bytesRead);
@@ -114,9 +110,6 @@ public class FileService {
                 // Send to client in real time
                 clientStream.write(buffer, 0, bytesRead);
                 clientStream.flush();
-
-                totalRead += bytesRead;
-               // System.out.println("Downloaded: " + formatFileSize(totalRead));
             }
         }
     }
