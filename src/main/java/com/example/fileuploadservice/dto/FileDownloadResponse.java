@@ -1,11 +1,12 @@
 package com.example.fileuploadservice.dto;
 
+
 import lombok.AllArgsConstructor;
 import lombok.Data;
 
 @Data
 @AllArgsConstructor
-public class FileUploadResponse {
+public class FileDownloadResponse {
     private String fileName;
-    private String url;
+    private byte[] content;
 }

@@ -17,27 +17,35 @@ repositories {
 	mavenCentral()
 }
 
+ext {
+    awsSdkV2 = '2.26.25'
+    springCloudAwsVersion = '3.0.3'  // Add this line
+}
+
 dependencies {
-
+	// Spring
 	implementation 'org.springframework.boot:spring-boot-starter-web'
-	implementation 'org.springframework.boot:spring-boot-starter-webflux'
-	implementation 'org.springframework.boot:spring-boot-starter-websocket'
-
-	// MinIO S3 compatible client
-	implementation 'io.minio:minio:8.5.7'
-
-	// For progress tracking and streaming
+	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
+
+ // AWS SDK v2 (keep if you want manual usage alongside Spring Cloud AWS)
+    implementation "software.amazon.awssdk:s3:${awsSdkV2}"
+    implementation "software.amazon.awssdk:ssm:${awsSdkV2}"
+    implementation "software.amazon.awssdk:sts:${awsSdkV2}"
+
+    // Spring Cloud AWS Parameter Store
+   // Spring Cloud AWS Parameter Store
+    implementation "io.awspring.cloud:spring-cloud-aws-starter-parameter-store:${springCloudAwsVersion}"
+
+
+	
+
+	// Lombok
 	compileOnly 'org.projectlombok:lombok'
 	annotationProcessor 'org.projectlombok:lombok'
-	implementation 'commons-io:commons-io:2.15.1'
 
-	// For async operations
-	implementation 'org.springframework.boot:spring-boot-starter-validation'
-
-
+	// Testing
 	testImplementation 'org.springframework.boot:spring-boot-starter-test'
-	testImplementation 'io.projectreactor:reactor-test'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }
 
