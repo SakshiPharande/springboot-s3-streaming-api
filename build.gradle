@@ -18,27 +18,25 @@ repositories {
 }
 
 ext {
-    awsSdkV2 = '2.26.25'
-    springCloudAwsVersion = '3.0.3'  // Add this line
+	springCloudAwsVersion = '3.1.0' // latest stable release (works with Boot 3.5.x)
+}
+
+dependencyManagement {
+	imports {
+		// Import Spring Cloud AWS BOM (aligns AWS SDK + Spring Cloud AWS versions)
+		mavenBom "io.awspring.cloud:spring-cloud-aws-dependencies:${springCloudAwsVersion}"
+	}
 }
 
 dependencies {
-	// Spring
+	// Spring Boot
 	implementation 'org.springframework.boot:spring-boot-starter-web'
 	implementation 'org.springframework.boot:spring-boot-starter-validation'
 	implementation 'org.springframework.boot:spring-boot-starter-actuator'
 
- // AWS SDK v2 (keep if you want manual usage alongside Spring Cloud AWS)
-    implementation "software.amazon.awssdk:s3:${awsSdkV2}"
-    implementation "software.amazon.awssdk:ssm:${awsSdkV2}"
-    implementation "software.amazon.awssdk:sts:${awsSdkV2}"
-
-    // Spring Cloud AWS Parameter Store
-   // Spring Cloud AWS Parameter Store
-    implementation "io.awspring.cloud:spring-cloud-aws-starter-parameter-store:${springCloudAwsVersion}"
-
-
-	
+	// AWS (no versions needed, BOM controls this)
+	implementation 'software.amazon.awssdk:s3'
+	implementation 'io.awspring.cloud:spring-cloud-aws-starter-parameter-store'
 
 	// Lombok
 	compileOnly 'org.projectlombok:lombok'
@@ -52,3 +50,4 @@ dependencies {
 tasks.named('test') {
 	useJUnitPlatform()
 }
+
